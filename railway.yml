@@ -1,0 +1,19 @@
+# Railway Configuration
+version: 2
+
+build:
+  commands:
+    - pip install -r requirements.txt
+
+start:
+  command: python agent.py start
+
+env:
+  # متغيرات البيئة (ستحتاج لإضافتها في Railway Dashboard)
+  - LIVEKIT_URL
+  - LIVEKIT_API_KEY  
+  - LIVEKIT_API_SECRET
+  - GOOGLE_API_KEY
+
+ports:
+  - 8080
