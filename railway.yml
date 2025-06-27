@@ -14,6 +14,7 @@ env:
   - LIVEKIT_API_KEY  
   - LIVEKIT_API_SECRET
   - GOOGLE_API_KEY
+  - PORT
 
 ports:
-  - 8080
+  - 8081
