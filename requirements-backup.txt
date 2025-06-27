@@ -1,0 +1,21 @@
+# متطلبات مبسطة وموثوقة لـ Friday Jarvis
+# هذا الملف يحتوي على إصدارات مجربة ومستقرة
+
+# LiveKit Core
+livekit-agents==0.7.3
+livekit-plugins-google==0.4.1
+livekit-plugins-silero==0.4.1
+
+# Noise Cancellation (اختياري)
+# livekit-plugins-noise-cancellation
+
+# أدوات البحث
+duckduckgo-search==3.8.5
+requests==2.31.0
+
+# أساسيات
+python-dotenv==1.0.0
+
+# إضافات مفيدة
+aiohttp==3.8.5
+pydantic==2.4.2
