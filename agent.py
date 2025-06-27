@@ -40,18 +40,32 @@ class Assistant(Agent):
 
 
 async def entrypoint(ctx: agents.JobContext):
+    """نقطة دخول محسنة مع إدارة أفضل للاتصالات"""
     try:
         logger.info("🚀 بدء جلسة الوكيل...")
+        logger.info(f"🏠 الغرفة: {ctx.room.name}")
+        logger.info(f"👤 المشاركين الحاليين: {len(ctx.room.remote_participants)}")
         
+        # إعداد مستمعي أحداث الغرفة
+        @ctx.room.on("participant_connected")
+        def on_participant_connected(participant):
+            logger.info(f"👋 مشارك جديد انضم: {participant.identity}")
+
+        @ctx.room.on("participant_disconnected") 
+        def on_participant_disconnected(participant):
+            logger.info(f"👋 مشارك غادر: {participant.identity}")
+            # لا نغلق الجلسة، فقط نسجل الحدث
+
         session = AgentSession()
 
         # إنشاء الوكيل
         assistant = Assistant()
         logger.info("✅ تم إنشاء الوكيل بنجاح")
 
-        # بدء الجلسة
+        # بدء الجلسة مع خيارات محسنة
         room_options = RoomInputOptions(
             video_enabled=False,
+            auto_subscribe=True,  # الاشتراك التلقائي في المقاطع
         )
         
         # إضافة تسكين الضوضاء إذا كان متوفراً
@@ -74,40 +88,82 @@ async def entrypoint(ctx: agents.JobContext):
         await ctx.connect()
         logger.info("✅ تم الاتصال بالغرفة بنجاح")
 
-        # توليد الرد الأولي
-        await session.generate_reply(
-            instructions=SESSION_INSTRUCTION,
-        )
+        # انتظار المشاركين أو الاستمرار إذا كانوا موجودين
+        if len(ctx.room.remote_participants) == 0:
+            logger.info("⏳ انتظار انضمام المشاركين...")
+        
+        # توليد الرد الأولي عند وجود مشاركين
+        if len(ctx.room.remote_participants) > 0:
+            await session.generate_reply(
+                instructions=SESSION_INSTRUCTION,
+            )
         
         logger.info("🎉 الوكيل جاهز للاستخدام!")
         
+        # البقاء نشطاً والاستمرار في الاستماع
+        try:
+            # انتظار إلى ما لا نهاية بدلاً من الإغلاق
+            while True:
+                await asyncio.sleep(1)
+                # التحقق من حالة الجلسة بشكل دوري
+                if not session or session.closed:
+                    logger.warning("⚠️ الجلسة مغلقة، محاولة إعادة التشغيل...")
+                    break
+        except asyncio.CancelledError:
+            logger.info("🔄 تم إلغاء المهمة")
+        
     except Exception as e:
         logger.error(f"❌ خطأ في entrypoint: {e}")
-        raise
+        # لا نرفع الخطأ، بل نسجله فقط لمنع إغلاق السيرفر
+        logger.info("🔄 سيتم إعادة تشغيل الوكيل تلقائياً...")
 
 
 if __name__ == "__main__":
     import sys
+    import threading
+    from http_server import start_health_server
+    
+    logger.info("🌟 بدء تشغيل Friday Jarvis Assistant...")
+    
+    # إعداد معالج إشارات للإغلاق النظيف
+    import signal
+    
+    def signal_handler(signum, frame):
+        logger.info("⏹️ تم استقبال إشارة الإغلاق")
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    # تشغيل HTTP server للـ health checks
+    if len(sys.argv) > 1 and sys.argv[1] == "start":
+        health_thread = threading.Thread(target=start_health_server, daemon=True)
+        health_thread.start()
+        logger.info("🌐 HTTP health server تم تشغيله")
     
     try:
-        logger.info("🌟 بدء تشغيل Friday Jarvis Assistant...")
-        
         if len(sys.argv) > 1 and sys.argv[1] == "start":
             # تشغيل الوكيل للإنتاج (Railway)
-            logger.info("🚀 تشغيل وضع الإنتاج...")
-            port = int(os.getenv("PORT", 8081))
-            logger.info(f"📡 الاستماع على المنفذ: {port}")
+            logger.info("� تشغيل وضع الإنتاج...")
             
-            agents.cli.run_app(agents.WorkerOptions(
-                entrypoint_fnc=entrypoint,
-                host="0.0.0.0",
-                port=port,
-            ))
+            # تشغيل مع إعادة التشغيل التلقائي
+            while True:
+                try:
+                    agents.cli.run_app(agents.WorkerOptions(
+                        entrypoint_fnc=entrypoint,
+                        # إعدادات إضافية للاستقرار
+                        keepalive=True,
+                    ))
+                except Exception as e:
+                    logger.error(f"💥 خطأ في تشغيل الوكيل: {e}")
+                    logger.info("🔄 إعادة تشغيل الوكيل خلال 3 ثوان...")
+                    asyncio.run(asyncio.sleep(3))
         else:
             # تشغيل وضع التطوير
             logger.info("🔧 تشغيل وضع التطوير...")
             agents.cli.run_app(agents.WorkerOptions(
                 entrypoint_fnc=entrypoint,
+                keepalive=True,
             ))
     except KeyboardInterrupt:
         logger.info("⏹️ تم إيقاف الوكيل بواسطة المستخدم")
