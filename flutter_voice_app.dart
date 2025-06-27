@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// تطبيق Friday Jarvis الصوتي - محسن للأداء والاستقرار مع إعادة الاتصال
+// تطبيق Friday Jarvis الصوتي - محسن للأداء والاستقرار
 class FridayJarvisApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -35,20 +35,25 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
   void initState() {
     super.initState();
     _requestPermissions();
+    // تهيئة LiveKit
     _initializeLiveKit();
   }
 
   Future<void> _initializeLiveKit() async {
+    // تكوين إعدادات LiveKit للصوت
     try {
+      // تفعيل إعدادات الصوت للتطبيق والتأكد من عدم كتم النظام
       await Hardware.instance.enableAudio();
       await Hardware.instance.setSpeakerphoneOn(true);
       print('✅ تم تهيئة إعدادات LiveKit بنجاح');
     } catch (e) {
       print('❌ خطأ في تهيئة LiveKit: $e');
+      // استمرار حتى لو فشل Hardware.instance
     }
   }
 
   Future<void> _requestPermissions() async {
+    // طلب صلاحيات الميكروفون والصوت
     try {
       Map<Permission, PermissionStatus> statuses =
           await [Permission.microphone].request();
@@ -69,30 +74,29 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
         _connectionStatus = 'جاري الاتصال...';
       });
 
-      // إغلاق الاتصال السابق إن وجد
-      if (_room != null) {
-        try {
-          await _room!.disconnect();
-        } catch (e) {
-          print('تحذير: خطأ في إغلاق الاتصال السابق: $e');
-        }
-        _room = null;
-      }
-
       _room = Room();
+
+      // إعداد مستمعي الأحداث قبل الاتصال
       _room!.addListener(_onRoomUpdate);
+
+      // إعداد مستمع للمشاركين والمقاطع الصوتية
       _room!.addListener(() {
         _handleRoomStateChange();
       });
 
+      // تكوين خيارات الاتصال مع التأكد من الاشتراك التلقائي
       final connectOptions = ConnectOptions(
         autoSubscribe: true,
         publishOnlyMode: false,
       );
 
+      // الاتصال بالغرفة
       await _room!.connect(_url, _token, connectOptions: connectOptions);
+
+      // تفعيل الميكروفون
       await _room!.localParticipant?.setMicrophoneEnabled(true);
 
+      // تفعيل مكبر الصوت
       try {
         await Hardware.instance.setSpeakerphoneOn(true);
       } catch (e) {
@@ -105,11 +109,12 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
       });
 
       print('🎉 متصل بنجاح مع Friday Jarvis!');
+
+      // التحقق من المشاركين فوراً
       _handleRoomStateChange();
     } catch (e) {
       setState(() {
         _connectionStatus = 'خطأ في الاتصال';
-        _isConnected = false;
       });
       print('❌ خطأ في الاتصال: $e');
       _showErrorDialog('خطأ في الاتصال: $e');
@@ -117,6 +122,7 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
   }
 
   void _onRoomUpdate() {
+    // تحديث حالة الغرفة
     if (mounted) {
       setState(() {});
       _handleRoomStateChange();
@@ -126,11 +132,16 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
   void _handleRoomStateChange() {
     if (_room == null) return;
 
+    // التعامل مع المشاركين البعيدين
     for (var participant in _room!.remoteParticipants.values) {
       print('🎯 معالجة مشارك: ${participant.identity}');
+
+      // إعداد مستمع للمشارك
       participant.addListener(() {
         _handleParticipantTracks(participant);
       });
+
+      // معالجة المقاطع الموجودة
       _handleParticipantTracks(participant);
     }
 
@@ -138,10 +149,14 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
   }
 
   void _handleParticipantTracks(participant) {
+    // معالجة جميع المقاطع الصوتية للمشارك
     for (var publication in participant.audioTrackPublications) {
       if (publication.track != null) {
-        print('🔊 مقطع صوتي من ${participant.identity}: ${publication.track.runtimeType}');
+        print(
+          '🔊 مقطع صوتي من ${participant.identity}: ${publication.track.runtimeType}',
+        );
 
+        // التأكد من الاشتراك في المقطع
         if (!publication.subscribed) {
           print('🔄 محاولة الاشتراك في المقطع الصوتي...');
           try {
@@ -151,6 +166,8 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
           }
         } else {
           print('✅ المقطع الصوتي نشط ومُشترك');
+
+          // تأكيد تشغيل الصوت
           try {
             publication.track?.enable();
             print('🎵 تم تفعيل تشغيل الصوت');
@@ -160,6 +177,11 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
         }
       }
     }
+  }
+
+  void _setupRemoteParticipants() {
+    // دالة مساعدة للتوافق مع الكود السابق
+    _handleRoomStateChange();
   }
 
   Future<void> _disconnect() async {
@@ -188,14 +210,6 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
         print('❌ خطأ في تغيير حالة الكتم: $e');
       }
     }
-  }
-
-  // دالة إعادة الاتصال المحسنة
-  Future<void> _reconnect() async {
-    print('🔄 محاولة إعادة الاتصال...');
-    await _disconnect();
-    await Future.delayed(Duration(seconds: 2)); // انتظار قصير
-    await _connectToRoom();
   }
 
   void _showErrorDialog(String message) {
@@ -305,11 +319,9 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
 
                       SizedBox(height: 40),
 
-                      // أزرار التحكم مع زر إعادة الاتصال
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        alignment: WrapAlignment.center,
+                      // أزرار التحكم
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           // زر الاتصال/قطع الاتصال
                           ElevatedButton.icon(
@@ -348,28 +360,6 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor:
                                     _isMuted ? Colors.orange : Colors.blue,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                              ),
-                            ),
-
-                          // زر إعادة الاتصال - يظهر عند الخطأ
-                          if (!_isConnected && _connectionStatus.contains('خطأ'))
-                            ElevatedButton.icon(
-                              onPressed: _reconnect,
-                              icon: Icon(Icons.refresh),
-                              label: Text(
-                                'إعادة الاتصال',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple,
                                 foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 24,
