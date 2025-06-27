@@ -14,7 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # تعريف المنفذ
-EXPOSE 8080
+EXPOSE 8081
 
-# تشغيل الوكيل
-CMD ["python", "agent.py", "start"]
+# جعل startup script قابل للتنفيذ
+RUN chmod +x startup.sh
+
+# تشغيل الوكيل مع Token generation
+CMD ["bash", "startup.sh"]

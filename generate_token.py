@@ -46,24 +46,37 @@ def generate_token(room_name: str, participant_name: str, duration_hours: int = 
     return token
 
 if __name__ == "__main__":
-    # توليد tokens مختلفة المدة
-    room_name = "playground-room"
-    participant_name = "flutter-user"
+    # توليد token لـ Railway deployment
+    room_name = "friday-jarvis-room"
+    participant_name = "railway-user"
     
     try:
-        # Token لمدة 24 ساعة
-        token_24h = generate_token(room_name, participant_name, 24)
-        print(f"Token (24 ساعة): {token_24h}")
-        print()
+        # Token لمدة سنة (8760 ساعة) للنشر على Railway
+        duration_hours = 8760  # سنة كاملة
+        token_long = generate_token(room_name, participant_name, duration_hours)
+        print(f"✅ Token تم توليده بنجاح!")
+        print(f"📁 Room: {room_name}")
+        print(f"👤 Participant: {participant_name}")
+        print(f"🔗 URL: wss://aivoic-tqnojuug.livekit.cloud")
+        print(f"⏰ صالح لمدة: {duration_hours} ساعة (سنة كاملة)")
+        print(f"🎯 Token: {token_long}")
         
-        # Token لمدة أسبوع (168 ساعة)
-        token_week = generate_token(room_name, participant_name, 168)
-        print(f"Token (أسبوع كامل): {token_week}")
-        print()
+        # حفظ Token في ملف للاستخدام مع Flutter
+        token_info = f"""# Flutter Integration Token
+# Generated: {time.strftime('%Y-%m-%d %H:%M:%S')}
+# Valid for: {duration_hours} hours (1 year)
+
+final String _url = 'wss://aivoic-tqnojuug.livekit.cloud';
+final String _token = '{token_long}';
+final String _room = '{room_name}';
+"""
         
-        print(f"Room Name: {room_name}")
-        print(f"Participant: {participant_name}")
-        print(f"URL: wss://aivoic-tqnojuug.livekit.cloud")
+        with open('token_info.dart', 'w', encoding='utf-8') as f:
+            f.write(token_info)
+        
+        print("\n💾 Token محفوظ في ملف: token_info.dart")
+        print("🚀 جاهز لبدء تشغيل الوكيل...")
         
     except Exception as e:
-        print(f"خطأ في توليد Token: {e}")
+        print(f"❌ خطأ في توليد Token: {e}")
+        exit(1)
