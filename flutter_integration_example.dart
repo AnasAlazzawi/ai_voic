@@ -12,10 +12,10 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
   bool _isConnected = false;
   bool _isMuted = false;
 
-  // معلومات الاتصال - Token جديد طويل المدى
+  // معلومات الاتصال - Token محدث من Railway (صالح لسنة كاملة)
   final String _url = 'wss://aivoic-tqnojuug.livekit.cloud';
   final String _token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJBUElQUHFhQnRkajlTREEiLCJleHAiOjE3ODI1NTUxMjgsIm5iZiI6MTc1MTAxOTExOCwic3ViIjoicmFpbHdheS11c2VyIiwidmlkZW8iOnsicm9vbSI6ImZyaWRheS1qYXJ2aXMtcm9vbSIsInJvb21Kb2luIjp0cnVlLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9fQ.qz-9NK64Vh3ekFS1P5F_eBXnAnew7-5EpsdJbpwg-pI';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJBUElQUHFhQnRkajlTREEiLCJleHAiOjE3ODI1NTU0MDYsIm5iZiI6MTc1MTAxOTM5Niwic3ViIjoicmFpbHdheS11c2VyIiwidmlkZW8iOnsicm9vbSI6ImZyaWRheS1qYXJ2aXMtcm9vbSIsInJvb21Kb2luIjp0cnVlLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9fQ.nikpGgLii3M4LE1AiPDk06q4wGC4dSxS2t6VsIVPalU';
 
   @override
   void initState() {
@@ -34,6 +34,13 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
       // إعداد المستمعين للأحداث
       _room!.addListener(_onRoomEvent);
 
+      // إعداد مستمع للمشاركين الجدد
+      _room!.addListener(() {
+        for (var participant in _room!.remoteParticipants.values) {
+          participant.addListener(() => _handleParticipantUpdate(participant));
+        }
+      });
+
       // الاتصال بالغرفة
       await _room!.connect(_url, _token);
 
@@ -51,18 +58,23 @@ class _VoiceAssistantPageState extends State<VoiceAssistantPage> {
   }
 
   void _onRoomEvent() {
-    // التعامل مع أحداث الغرفة
-    if (_room != null) {
-      // التعامل مع المشاركين البعيدين
-      for (var participant in _room!.remoteParticipants.values) {
-        for (var publication in participant.audioTrackPublications) {
-          if (publication.track != null) {
-            // تشغيل الصوت من الوكيل
-            print('تم استلام صوت من المشارك: ${participant.identity}');
-          }
+    // التعامل مع أحداث الغرفة العامة
+    setState(() {});
+  }
+
+  void _handleParticipantUpdate(RemoteParticipant participant) {
+    print('تحديث مشارك: ${participant.identity}');
+
+    // التعامل مع المقاطع الصوتية
+    for (var publication in participant.audioTrackPublications) {
+      if (publication.track != null) {
+        final track = publication.track!;
+        if (track is AudioTrack) {
+          print('تم تفعيل صوت المشارك: ${participant.identity}');
         }
       }
     }
+    setState(() {});
   }
 
   Future<void> _disconnect() async {

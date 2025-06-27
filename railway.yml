@@ -1,13 +1,11 @@
 # Railway Configuration for Friday Jarvis AI Assistant
-version: 2
-
 build:
   commands:
-    - pip install -r requirements.txt
+    - pip install --no-cache-dir -r requirements.txt
 
 deploy:
-  startCommand: python generate_token.py && python agent.py start
-  healthcheckPath: /health
+  startCommand: bash startup.sh
+  healthcheckPath: /
   healthcheckTimeout: 300
   restartPolicyType: always
 
@@ -20,3 +18,6 @@ environments:
       LIVEKIT_API_SECRET: ""
       GOOGLE_API_KEY: ""
       PORT: "8081"
+      # تحسينات الأداء
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
