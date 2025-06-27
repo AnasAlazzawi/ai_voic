@@ -6,13 +6,16 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
+    gcc \
+    g++ \
+    make \
     && rm -rf /var/lib/apt/lists/*
 
 # تعيين مجلد العمل
 WORKDIR /app
 
 # تحديث pip إلى أحدث إصدار
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip setuptools wheel
 
 # نسخ ملفات التثبيت
 COPY requirements.txt install_requirements.sh ./
@@ -20,8 +23,8 @@ COPY requirements.txt install_requirements.sh ./
 # جعل ملف التثبيت قابل للتنفيذ
 RUN chmod +x install_requirements.sh
 
-# تثبيت المتطلبات مع النهج المحسن
-RUN bash install_requirements.sh || pip install --no-cache-dir -r requirements.txt
+# تثبيت المتطلبات مع النهج المحسن والاحتياطي
+RUN bash install_requirements.sh || pip install --no-cache-dir -r requirements-minimal.txt
 
 # نسخ باقي ملفات المشروع
 COPY . .

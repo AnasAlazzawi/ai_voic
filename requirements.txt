@@ -1,11 +1,16 @@
 # المتطلبات المبسطة لـ Friday Jarvis AI Assistant
-livekit-agents
-livekit-plugins-google
-livekit-plugins-silero
+# LiveKit Core Components
+livekit-agents>=0.8.0
+livekit-plugins-google>=0.6.0
+livekit-plugins-silero>=0.6.0
 
 # أدوات البحث والذاكرة
-duckduckgo-search
-requests
+duckduckgo-search>=6.1.0
+requests>=2.31.0
+langchain-community>=0.2.0
 
 # مرافق أساسية
-python-dotenv
+python-dotenv>=1.0.0
+
+# أدوات إضافية اختيارية
+# livekit-plugins-noise-cancellation (اختياري)
