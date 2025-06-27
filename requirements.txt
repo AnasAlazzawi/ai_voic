@@ -1,4 +1,4 @@
-livekit-agents
+livekit-agents>=0.8.0
 livekit-plugins-openai
 livekit-plugins-silero
 livekit-plugins-google
@@ -12,3 +12,5 @@ PyJWT==2.8.0
 gunicorn
 uvicorn
 fastapi
+psutil
+asyncio-throttle

@@ -53,4 +53,21 @@ async def entrypoint(ctx: agents.JobContext):
 
 
 if __name__ == "__main__":
-    agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
+    import sys
+    import logging
+    
+    # إعداد اللوقينق
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info("Starting Friday JARVIS Agent...")
+        agents.cli.run_app(agents.WorkerOptions(
+            entrypoint_fnc=entrypoint,
+            # إعدادات إضافية لتحسين الأداء
+            max_job_retries=3,
+            job_request_timeout=30.0,
+        ))
+    except Exception as e:
+        logger.error(f"Failed to start agent: {e}")
+        sys.exit(1)
