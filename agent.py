@@ -5,9 +5,14 @@ import logging
 
 from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions
-from livekit.plugins import (
-    noise_cancellation,
-)
+# استيراد تسكين الضوضاء مع التعامل مع الأخطاء
+try:
+    from livekit.plugins import noise_cancellation
+    NOISE_CANCELLATION_AVAILABLE = True
+except ImportError:
+    NOISE_CANCELLATION_AVAILABLE = False
+    logging.warning("⚠️ Noise cancellation plugin غير متوفر")
+
 from livekit.plugins import google
 from prompts import AGENT_INSTRUCTION, SESSION_INSTRUCTION
 from tools import get_weather, search_web
@@ -45,13 +50,22 @@ async def entrypoint(ctx: agents.JobContext):
         logger.info("✅ تم إنشاء الوكيل بنجاح")
 
         # بدء الجلسة
+        room_options = RoomInputOptions(
+            video_enabled=False,
+        )
+        
+        # إضافة تسكين الضوضاء إذا كان متوفراً
+        if NOISE_CANCELLATION_AVAILABLE:
+            try:
+                room_options.noise_cancellation = noise_cancellation.BVC()
+                logger.info("✅ تم تفعيل تسكين الضوضاء")
+            except Exception as e:
+                logger.warning(f"⚠️ لا يمكن تفعيل تسكين الضوضاء: {e}")
+        
         await session.start(
             room=ctx.room,
             agent=assistant,
-            room_input_options=RoomInputOptions(
-                video_enabled=False,
-                noise_cancellation=noise_cancellation.BVC(),
-            ),
+            room_input_options=room_options,
         )
         
         logger.info("✅ تم بدء الجلسة بنجاح")
@@ -88,15 +102,12 @@ if __name__ == "__main__":
                 entrypoint_fnc=entrypoint,
                 host="0.0.0.0",
                 port=port,
-                # تحسينات الأداء
-                num_workers=1,  # تقليل عدد العمال لتوفير الذاكرة
             ))
         else:
             # تشغيل وضع التطوير
             logger.info("🔧 تشغيل وضع التطوير...")
             agents.cli.run_app(agents.WorkerOptions(
                 entrypoint_fnc=entrypoint,
-                num_workers=1,
             ))
     except KeyboardInterrupt:
         logger.info("⏹️ تم إيقاف الوكيل بواسطة المستخدم")
