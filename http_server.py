@@ -38,7 +38,7 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
 
 def start_health_server():
     """بدء سيرفر فحص الصحة"""
-    port = int(os.getenv("PORT", 8081))
+    port = int(os.getenv("PORT", 8081)) + 1  # استخدام منفذ مختلف عن LiveKit
     
     try:
         server = HTTPServer(('0.0.0.0', port), HealthCheckHandler)

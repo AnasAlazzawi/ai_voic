@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 import asyncio
 import logging
+import time
 
 from livekit import agents
 from livekit.agents import AgentSession, Agent, RoomInputOptions
@@ -120,26 +121,17 @@ async def entrypoint(ctx: agents.JobContext):
 
 if __name__ == "__main__":
     import sys
-    import threading
-    from http_server import start_health_server
+    import signal
     
     logger.info("🌟 بدء تشغيل Friday Jarvis Assistant...")
     
     # إعداد معالج إشارات للإغلاق النظيف
-    import signal
-    
     def signal_handler(signum, frame):
         logger.info("⏹️ تم استقبال إشارة الإغلاق")
         sys.exit(0)
     
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
-    # تشغيل HTTP server للـ health checks
-    if len(sys.argv) > 1 and sys.argv[1] == "start":
-        health_thread = threading.Thread(target=start_health_server, daemon=True)
-        health_thread.start()
-        logger.info("🌐 HTTP health server تم تشغيله")
     
     try:
         if len(sys.argv) > 1 and sys.argv[1] == "start":
@@ -151,19 +143,16 @@ if __name__ == "__main__":
                 try:
                     agents.cli.run_app(agents.WorkerOptions(
                         entrypoint_fnc=entrypoint,
-                        # إعدادات إضافية للاستقرار
-                        keepalive=True,
                     ))
                 except Exception as e:
                     logger.error(f"💥 خطأ في تشغيل الوكيل: {e}")
                     logger.info("🔄 إعادة تشغيل الوكيل خلال 3 ثوان...")
-                    asyncio.run(asyncio.sleep(3))
+                    time.sleep(3)
         else:
             # تشغيل وضع التطوير
             logger.info("🔧 تشغيل وضع التطوير...")
             agents.cli.run_app(agents.WorkerOptions(
                 entrypoint_fnc=entrypoint,
-                keepalive=True,
             ))
     except KeyboardInterrupt:
         logger.info("⏹️ تم إيقاف الوكيل بواسطة المستخدم")
