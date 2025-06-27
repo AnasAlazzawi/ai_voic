@@ -1,6 +1,0 @@
-# متطلبات مبسطة جداً للحالات الطارئة
-livekit-agents
-livekit-plugins-google
-livekit-plugins-silero
-requests
-python-dotenv

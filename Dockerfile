@@ -1,47 +1,31 @@
-# استخدام صورة Python الرسمية مع إضافات ضرورية
-FROM python:3.11-slim
+# استخدام Python 3.11 كصورة أساسية أكثر أماناً
+FROM python:3.11-slim-bullseye
 
-# تحديث النظام وتثبيت المتطلبات الأساسية
+# تعيين متغيرات البيئة
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# تثبيت متطلبات النظام
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
-    git \
-    gcc \
-    g++ \
-    make \
     && rm -rf /var/lib/apt/lists/*
 
-# تعيين مجلد العمل
+# إنشاء مجلد العمل
 WORKDIR /app
 
-# تحديث pip إلى أحدث إصدار
-RUN pip install --upgrade pip setuptools wheel
+# نسخ ملف المتطلبات وتثبيت المكتبات
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# نسخ ملفات التثبيت
-COPY requirements.txt install_requirements.sh ./
-
-# جعل ملف التثبيت قابل للتنفيذ
-RUN chmod +x install_requirements.sh
-
-# تثبيت المتطلبات مع النهج المحسن والاحتياطي
-RUN bash install_requirements.sh || pip install --no-cache-dir -r requirements-minimal.txt
-
-# نسخ باقي ملفات المشروع
+# نسخ الكود المصدري
 COPY . .
 
-# إعداد متغيرات البيئة
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONIOENCODING=utf-8
+# إنشاء مجلد للوقس
+RUN mkdir -p KMS/logs
 
-# تعريف المنفذ
-EXPOSE 8081
+# تعيين منفذ التطبيق
+EXPOSE $PORT
 
-# جعل الملفات قابلة للتنفيذ
-RUN chmod +x startup.sh setup_env.sh
-
-# إنشاء مجلد للسجلات
-RUN mkdir -p /app/logs
-
-# تشغيل الوكيل مع Token generation
-CMD ["bash", "startup.sh"]
+# تشغيل الوكيل
+CMD ["python", "agent.py"]
